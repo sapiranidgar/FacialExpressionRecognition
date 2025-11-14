@@ -1,3 +1,5 @@
+from tensorflow.keras.preprocessing.image import ImageDataGenerator
+
 class DatasetGenerator:
     def __init__(self, train_set_directory_path: str, test_set_directory_path: str, picture_size: int, batch_size: int):
         datagen_train = ImageDataGenerator()
