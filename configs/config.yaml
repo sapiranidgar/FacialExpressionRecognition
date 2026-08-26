@@ -1,0 +1,36 @@
+# Single source of truth for paths and hyperparameters.
+# Attack-related keys will be added in phase 2.
+
+seed: 42
+
+paths:
+  data_dir: data/fer2013
+  train_dir: data/fer2013/train
+  test_dir: data/fer2013/test
+  checkpoints_dir: checkpoints
+  results_dir: results
+
+data:
+  num_classes: 7
+  class_names: [angry, disgust, fear, happy, neutral, sad, surprise]
+  val_fraction: 0.1        # carved out of the train split
+  batch_size: 64
+  num_workers: 0           # Windows-safe default; bump if running on Linux/macOS
+
+simple_cnn:
+  image_size: 48
+  grayscale: true
+  epochs: 30
+  lr: 0.001
+  weight_decay: 0.0001
+  early_stopping_patience: 5
+  checkpoint_name: simple_cnn.pt
+
+resnet_finetune:
+  image_size: 224
+  epochs: 10
+  lr: 0.0005
+  weight_decay: 0.0001
+  early_stopping_patience: 3
+  unfrozen_layers: [layer4, fc]   # everything else in resnet18 stays frozen
+  checkpoint_name: resnet18_finetuned.pt
