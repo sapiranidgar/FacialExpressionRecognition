@@ -61,6 +61,8 @@ def build_train_config(config: Config) -> TrainConfig:
         lr=config.resnet_finetune.lr,
         weight_decay=config.resnet_finetune.weight_decay,
         early_stopping_patience=config.resnet_finetune.early_stopping_patience,
+        lr_scheduler_patience=config.resnet_finetune.lr_scheduler_patience,
+        lr_scheduler_factor=config.resnet_finetune.lr_scheduler_factor,
         checkpoint_path=config.paths.checkpoints_dir / config.resnet_finetune.checkpoint_name,
         num_classes=config.data.num_classes,
     )
@@ -102,7 +104,7 @@ def main() -> None:
     config = load_config()
     set_seed(config.seed)
 
-    train_loader, val_loader, test_loader = build_dataloaders(MODEL_TYPE_RESNET, config)
+    train_loader, val_loader, test_loader, class_weights = build_dataloaders(MODEL_TYPE_RESNET, config)
     print(MSG_BUILT_LOADERS)
 
     model = build_model(config)
@@ -111,7 +113,7 @@ def main() -> None:
     train_cfg = build_train_config(config)
     print(MSG_BUILT_TRAINER)
 
-    trainer = Trainer(model, train_cfg, device=DEVICE_CPU)
+    trainer = Trainer(model, train_cfg, device=DEVICE_CPU, class_weights=class_weights)
     print(MSG_STARTED_TRAINING)
     history = trainer.fit(train_loader, val_loader)
     print(MSG_FINISHED_TRAINING)

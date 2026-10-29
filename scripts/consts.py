@@ -42,3 +42,11 @@ MSG_BUILT_TRAINER = "built trainer"
 MSG_STARTED_TRAINING = "started training"
 MSG_FINISHED_TRAINING = "finished training"
 MSG_EVALUATING_MODEL = "evaluating model"
+
+# --- console messages (tune_hyperparameters.py) ---
+MSG_GRID_SEARCH_START_TEMPLATE = "Running grid search for {model}: {num_trials} trials, {trial_epochs} epochs/trial"
+MSG_GRID_SEARCH_BEST_TEMPLATE = (
+    "\nBest: lr={lr} weight_decay={weight_decay} "
+    "val_f1_macro={val_f1_macro:.4f} val_accuracy={val_accuracy:.4f}"
+)
+MSG_WROTE_CONFIG_TEMPLATE = "Wrote best hyperparameters to {path} ({section} section)"

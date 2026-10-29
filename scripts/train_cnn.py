@@ -48,6 +48,8 @@ def build_train_config(config: Config) -> TrainConfig:
         lr=config.simple_cnn.lr,
         weight_decay=config.simple_cnn.weight_decay,
         early_stopping_patience=config.simple_cnn.early_stopping_patience,
+        lr_scheduler_patience=config.simple_cnn.lr_scheduler_patience,
+        lr_scheduler_factor=config.simple_cnn.lr_scheduler_factor,
         checkpoint_path=config.paths.checkpoints_dir / config.simple_cnn.checkpoint_name,
         num_classes=config.data.num_classes,
     )
@@ -87,12 +89,12 @@ def main() -> None:
     config = load_config()
     set_seed(config.seed)
 
-    train_loader, val_loader, test_loader = build_dataloaders(MODEL_TYPE_SIMPLE_CNN, config)
+    train_loader, val_loader, test_loader, class_weights = build_dataloaders(MODEL_TYPE_SIMPLE_CNN, config)
 
     model = build_model(config)
     train_cfg = build_train_config(config)
 
-    trainer = Trainer(model, train_cfg, device=DEVICE_CPU)
+    trainer = Trainer(model, train_cfg, device=DEVICE_CPU, class_weights=class_weights)
     history = trainer.fit(train_loader, val_loader)
 
     save_training_curves(history, config)

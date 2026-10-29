@@ -9,6 +9,7 @@ import yaml
 from fer.config.data_config import DataConfig
 from fer.config.full_config import Config
 from fer.config.paths_config import PathsConfig
+from fer.config.preprocessing_config import PreprocessingConfig
 from fer.config.resnet_finetune_config import ResnetFinetuneConfig
 from fer.config.simple_cnn_config import SimpleCnnConfig
 from fer.constants import CONFIG_FILE_RELATIVE_PATH
@@ -49,4 +50,5 @@ def load_config(path: Path | str = DEFAULT_CONFIG_PATH) -> Config:
         data=DataConfig(**raw["data"]),
         simple_cnn=SimpleCnnConfig(**raw["simple_cnn"]),
         resnet_finetune=ResnetFinetuneConfig(**raw["resnet_finetune"]),
+        preprocessing=PreprocessingConfig(**raw["preprocessing"]),
     )

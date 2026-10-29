@@ -6,6 +6,7 @@ import dataclasses
 
 from fer.config.data_config import DataConfig
 from fer.config.paths_config import PathsConfig
+from fer.config.preprocessing_config import PreprocessingConfig
 from fer.config.resnet_finetune_config import ResnetFinetuneConfig
 from fer.config.simple_cnn_config import SimpleCnnConfig
 
@@ -23,6 +24,7 @@ class Config:
         data: Dataset and dataloader configuration.
         simple_cnn: Hyperparameters for the from-scratch CNN.
         resnet_finetune: Hyperparameters for the fine-tuned ResNet18.
+        preprocessing: Train-time augmentation and class-imbalance settings.
     """
 
     seed: int
@@ -30,3 +32,4 @@ class Config:
     data: DataConfig
     simple_cnn: SimpleCnnConfig
     resnet_finetune: ResnetFinetuneConfig
+    preprocessing: PreprocessingConfig

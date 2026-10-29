@@ -112,7 +112,7 @@ def evaluate_model(model_type: ModelType, config: Config) -> dict:
     Returns:
         The metrics dict produced by fer.training.metrics.compute_metrics.
     """
-    _, _, test_loader = build_dataloaders(model_type, config)
+    _, _, test_loader, _ = build_dataloaders(model_type, config)
     model = load_model(model_type, config)
     y_true, y_pred = predict_all(model, test_loader, DEVICE_CPU)
     return compute_metrics(y_true, y_pred, config.data.num_classes)

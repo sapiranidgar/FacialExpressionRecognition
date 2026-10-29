@@ -25,7 +25,13 @@ class Trainer:
     model's own requires_grad flags and a TrainConfig instance.
     """
 
-    def __init__(self, model: nn.Module, train_config: TrainConfig, device: str = DEVICE_CPU):
+    def __init__(
+        self,
+        model: nn.Module,
+        train_config: TrainConfig,
+        device: str = DEVICE_CPU,
+        class_weights: torch.Tensor | None = None,
+    ):
         """Initialize the trainer with a model, run settings, and target device.
 
         Args:
@@ -33,14 +39,24 @@ class Trainer:
                 requires_grad=True are passed to the optimizer.
             train_config: Hyperparameters and paths for this run.
             device: Torch device string to move the model and batches to.
+            class_weights: Optional per-class loss weights (e.g. from
+                fer.preprocessing.class_weights.compute_class_weights) to
+                counter class imbalance. Moved to `device` automatically.
         """
         self.model = model.to(device)
         self.cfg = train_config
         self.device = device
-        self.criterion = nn.CrossEntropyLoss()
+        weight = class_weights.to(device) if class_weights is not None else None
+        self.criterion = nn.CrossEntropyLoss(weight=weight)
         trainable_params = [p for p in self.model.parameters() if p.requires_grad]
         self.optimizer = torch.optim.Adam(
             trainable_params, lr=train_config.lr, weight_decay=train_config.weight_decay
+        )
+        self.scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(
+            self.optimizer,
+            mode="min",
+            factor=train_config.lr_scheduler_factor,
+            patience=train_config.lr_scheduler_patience,
         )
         self.history = TrainHistory()
 
@@ -96,12 +112,16 @@ class Trainer:
         return total_loss / total_samples, total_correct / total_samples
 
     def fit(self, train_loader: DataLoader, val_loader: DataLoader) -> TrainHistory:
-        """Train for up to `cfg.epochs` epochs with early stopping.
+        """Train for up to `cfg.epochs` epochs with LR scheduling and early stopping.
 
-        After each epoch, prints a summary line with loss/accuracy, time
-        taken, and an ETA for the remaining epochs (based on the running
-        average epoch duration). Restores the best validation-loss weights
-        and saves them to `cfg.checkpoint_path` before returning.
+        After each epoch, steps a ReduceLROnPlateau scheduler on the
+        validation loss (halving - or `cfg.lr_scheduler_factor`-ing - the
+        learning rate after `cfg.lr_scheduler_patience` epochs without
+        improvement), then prints a summary line with loss/accuracy, the
+        current learning rate, time taken, and an ETA for the remaining
+        epochs (based on the running average epoch duration). Restores the
+        best validation-loss weights and saves them to `cfg.checkpoint_path`
+        before returning.
 
         Args:
             train_loader: Dataloader for the training split.
@@ -121,6 +141,9 @@ class Trainer:
             train_loss, train_acc = self._run_epoch(train_loader, train=True, epoch=epoch)
             val_loss, val_acc = self._run_epoch(val_loader, train=False, epoch=epoch)
 
+            self.scheduler.step(val_loss)
+            current_lr = self.optimizer.param_groups[0]["lr"]
+
             duration = time.time() - start_time
             epoch_durations.append(duration)
             avg_duration = sum(epoch_durations) / len(epoch_durations)
@@ -135,6 +158,7 @@ class Trainer:
                 f"epoch {epoch}/{self.cfg.epochs} "
                 f"train_loss={train_loss:.4f} train_acc={train_acc:.4f} "
                 f"val_loss={val_loss:.4f} val_acc={val_acc:.4f} "
+                f"lr={current_lr:.2e} "
                 f"| {duration:.1f}s/epoch, ~{eta} remaining"
             )
 
