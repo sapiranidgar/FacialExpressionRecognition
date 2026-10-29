@@ -1,14 +1,10 @@
-# Single source of truth for paths and hyperparameters.
-# Attack-related keys will be added in phase 2.
+# Single source of truth for fer_training's hyperparameters.
+# Paths are NOT configured here - they're derived from the `artifacts`
+# package's shared location constants (see fer_training/config/loader.py),
+# so every package in the repo (fer_training, fer_server, attacks, defenses)
+# agrees on where data/checkpoints/results live.
 
 seed: 42
-
-paths:
-  data_dir: data/fer2013
-  train_dir: data/fer2013/train
-  test_dir: data/fer2013/test
-  checkpoints_dir: checkpoints
-  results_dir: results
 
 data:
   num_classes: 7
