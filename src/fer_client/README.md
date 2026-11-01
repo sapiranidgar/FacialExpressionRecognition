@@ -1,38 +1,61 @@
 # fer_client
 
-## Status
+`fer_client` queries a running `fer_server` over HTTP. It has two parts:
 
-**Not implemented yet.** This is scaffolding only — `__init__.py`, a stub `client.py`, and `requirements.txt`. No client logic exists. This README documents the agreed design so the eventual implementation has somewhere to start from; see [`PLAN.md`](../../PLAN.md) for the full repo-reorganization decisions.
+- **`client.py`** — a thin library (`FerClient`) that sends an image and parses the prediction. It depends only on `requests` and knows nothing about models, PyTorch, or `common`, so anything that just wants to query the server (the web UI, a demo script, a black-box attack) can use it without the ML stack.
+- **`web/app.py`** — a Streamlit website where a user uploads a face image and sees the predicted facial expression. It goes through `FerClient`; it never touches a model.
 
-`fer_client` is a thin HTTP client for `fer_server`'s prediction endpoint. It deliberately knows nothing about models, PyTorch, or `common` — it only knows how to send an image and parse the response. That's what keeps it usable by anything that just wants to query a running server (a grader, a demo script, a black-box attack) without installing the full ML stack.
-
-## The Task (Planned)
-
-Send an image (bytes or a file path) to `fer_server`'s prediction route over HTTP via `requests`, and return the parsed prediction. Nothing more — no preprocessing, no model logic, no retries/caching beyond what's strictly needed. All of that genuinely belongs to the server, not the client.
+```
+browser ──> Streamlit app (fer_client.web) ──FerClient──> fer_server /predict
+```
 
 ## Package Structure
 
 ```
 fer_client/
-├── client.py            # the HTTP call (currently a docstring stub)
-└── requirements.txt     # just `requests`
+├── constants.py        # SERVER_URL, timeout, mirrored server API contract, UI text
+├── client.py           # FerClient, Prediction, FerClientError
+├── web/
+│   └── app.py          # Streamlit website
+└── requirements.txt    # requests, streamlit
 ```
 
-## Planned Flow of the Code
+## Library Usage
 
-1. Caller provides an image (path or bytes) and the server's base URL.
-2. `client.py` sends it as a file upload to the server's prediction route.
-3. The parsed JSON response (predicted emotion probabilities) is returned to the caller.
+```python
+from fer_client.client import FerClient, FerClientError
 
-`fer_client` has no dependency on `common`, `fer_training`, or `artifacts` — by design, so it never needs `torch`/`torchvision` installed. It's used *by* `attacks` (black-box evasion attacks query the server only, never the model directly) and `defenses` (inference-time defenses sit in front of the server and forward through this client), not the other way around.
+client = FerClient()                       # defaults to constants.SERVER_URL (http://localhost:8000)
+if client.health():
+    prediction = client.predict("face.png")  # path or raw bytes
+    print(prediction.emotion, prediction.confidence, prediction.probabilities)
+```
+
+`predict` raises `FerClientError` if the server is unreachable/times out, or rejects the image (the message includes the server's `detail`, e.g. "Uploaded file could not be decoded as an image."). `health()` returns `False` instead of raising.
+
+The server's route paths and response keys are mirrored in `constants.py` rather than imported from `fer_server`, keeping `fer_client` dependency-free of the server package.
+
+## The Website
+
+Upload (file picker or drag-and-drop) a **cropped face** image — the server does no face detection. As soon as it's chosen, the page shows a preview, the predicted expression with its confidence, and a bar chart of every expression's probability (highest first). If the server rejects the file or isn't running, an error message is shown inline.
 
 ## Configuration
 
-Not yet defined. Likely candidates once implemented: the server's base URL (default `http://localhost:8000` or similar), request timeout.
+Everything is a constant in `constants.py`: `SERVER_URL` (default `http://localhost:8000`) and `REQUEST_TIMEOUT_SECONDS`. `FerClient(base_url=..., timeout=...)` overrides them per instance. The website runs on Streamlit's default port, 8501.
 
-## Execution Pipeline (Planned)
+## Execution Pipeline
 
-`fer_client` is a library, not a CLI entry point — it's meant to be imported by whatever script needs to query the server (a demo script, an attack, a defense), which will itself provide the execution entry point once those are implemented.
+From the repo root, start the server first, then the website:
+
+```bash
+pip install -r src/fer_server/requirements.txt -r src/fer_client/requirements.txt
+PYTHONPATH=src uvicorn fer_server.main:app            # terminal 1, http://localhost:8000
+PYTHONPATH=src streamlit run src/fer_client/web/app.py # terminal 2, http://localhost:8501
+```
+
+## Tests
+
+`tests/fer_client/test_client.py` unit-tests `FerClient` with `requests.get`/`post` monkeypatched to canned responses (success parsing, 400 → `FerClientError` with detail, unreachable server). The website itself is checked manually.
 
 ## Where Results Are Saved
 
