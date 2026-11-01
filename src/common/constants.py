@@ -14,6 +14,10 @@ DEVICE_CPU = "cpu"
 MODEL_TYPE_SIMPLE_CNN = "simple_cnn"
 MODEL_TYPE_RESNET = "resnet"
 
+# --- FER2013 emotion classes, in label-index order (ImageFolder sorts class
+# folders alphabetically; must match configs/config.yaml's data.class_names) ---
+FER_CLASS_NAMES = ["angry", "disgust", "fear", "happy", "neutral", "sad", "surprise"]
+
 # --- Image normalization ---
 IMAGENET_MEAN = [0.485, 0.456, 0.406]
 IMAGENET_STD = [0.229, 0.224, 0.225]
